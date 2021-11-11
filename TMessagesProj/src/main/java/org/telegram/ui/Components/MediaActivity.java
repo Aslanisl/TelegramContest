@@ -10,6 +10,7 @@ import android.util.TypedValue;
 import android.view.Gravity;
 import android.view.MotionEvent;
 import android.view.View;
+import android.view.ViewGroup;
 import android.view.accessibility.AccessibilityNodeInfo;
 import android.widget.FrameLayout;
 import android.widget.TextView;
@@ -197,6 +198,11 @@ public class MediaActivity extends BaseFragment implements SharedMediaLayout.Sha
             @Override
             public void updateSelectedMediaTabText() {
                 updateMediaCount();
+            }
+
+            @Override
+            public ViewGroup getContainer() {
+                return fragmentView;
             }
         }, SharedMediaLayout.VIEW_TYPE_MEDIA_ACTIVITY) {
             @Override

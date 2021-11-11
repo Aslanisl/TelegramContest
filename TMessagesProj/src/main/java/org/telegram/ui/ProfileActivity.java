@@ -3186,6 +3186,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                     searchItem.setEnabled(!scrolling && !isPulledDown);
                 }
                 sharedMediaLayout.scrollingByUser = listView.scrollingByUser;
+                sharedMediaLayout.hideNoforwardsHint();
             }
 
             @Override
@@ -4507,6 +4508,11 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
 
     public RecyclerListView getListView() {
         return listView;
+    }
+
+    @Override
+    public ViewGroup getContainer() {
+        return (FrameLayout) fragmentView;
     }
 
     private void needLayoutText(float diff) {

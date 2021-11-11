@@ -403,6 +403,7 @@ public class SharedMediaLayout extends FrameLayout implements NotificationCenter
     private AnimatorSet floatingDateAnimation;
     private Runnable hideFloatingDateRunnable = () -> hideFloatingDateView(true);
     private ArrayList<View> actionModeViews = new ArrayList<>();
+    private HintView showNoforwardsHintView;
 
     private float additionalFloatingTranslation;
 
@@ -1431,7 +1432,8 @@ public class SharedMediaLayout extends FrameLayout implements NotificationCenter
             forwardItem.setDuplicateParentStateEnabled(false);
             actionModeLayout.addView(forwardItem, new LinearLayout.LayoutParams(AndroidUtilities.dp(54), ViewGroup.LayoutParams.MATCH_PARENT));
             actionModeViews.add(forwardItem);
-            forwardItem.setOnClickListener(v -> onActionBarItemClick(forward));
+
+            updateNoforwards();
         }
         deleteItem = new ActionBarMenuItem(context, null, Theme.getColor(Theme.key_actionBarActionModeDefaultSelector), Theme.getColor(Theme.key_windowBackgroundWhiteGrayText2), false);
         deleteItem.setIcon(R.drawable.msg_delete);
@@ -3012,6 +3014,45 @@ public class SharedMediaLayout extends FrameLayout implements NotificationCenter
         checkCurrentTabValid();
     }
 
+    public void hideNoforwardsHint() {
+        if (showNoforwardsHintView != null) {
+            showNoforwardsHintView.hide();
+        }
+    }
+
+    private void updateNoforwards() {
+        boolean noforwards = false;
+        if (profileActivity != null) {
+            TLRPC.Chat currentChat = profileActivity.getMessagesController().getChat(-dialog_id);
+            if (currentChat != null) {
+                noforwards = currentChat.noforwards;
+            }
+        }
+        forwardItem.setAlpha(noforwards ? 0.5f : 1f);
+        boolean finalNoforwards = noforwards;
+        forwardItem.setOnClickListener(v -> {
+            if (finalNoforwards) {
+                showNoforwardsDescription();
+            } else {
+                onActionBarItemClick(forward);
+            }
+        });
+    }
+
+    private void showNoforwardsDescription() {
+        if (showNoforwardsHintView == null) {
+            showNoforwardsHintView = new HintView(getContext(), 4);
+            showNoforwardsHintView.setShowingDuration(3000);
+            showNoforwardsHintView.setAlpha(0.0f);
+            showNoforwardsHintView.setVisibility(View.INVISIBLE);
+            delegate.getContainer().addView(showNoforwardsHintView, LayoutHelper.createFrame(LayoutHelper.WRAP_CONTENT,
+                    LayoutHelper.WRAP_CONTENT, Gravity.LEFT | Gravity.TOP, 0, 0, 19, -8));
+            showNoforwardsHintView.setText(LocaleController.getString("ForwardsRestrictChannel", R.string.ForwardsRestrictChannel));
+            showNoforwardsHintView.setBackgroundColor(0xE5242424, 0xffffffff);
+        }
+        showNoforwardsHintView.showForView(forwardItem, true);
+    }
+
     public void onActionBarItemClick(int id) {
         if (id == delete) {
             TLRPC.Chat currentChat = null;
@@ -3952,6 +3993,7 @@ public class SharedMediaLayout extends FrameLayout implements NotificationCenter
         for (int a = 0; a < mediaPages.length; a++) {
             fixLayoutInternal(a);
         }
+        updateNoforwards();
     }
 
     public void onConfigurationChanged(android.content.res.Configuration newConfig) {
@@ -6429,5 +6471,7 @@ public class SharedMediaLayout extends FrameLayout implements NotificationCenter
         boolean canSearchMembers();
 
         void updateSelectedMediaTabText();
+
+        ViewGroup getContainer();
     }
 }

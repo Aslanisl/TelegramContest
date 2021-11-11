@@ -5678,8 +5678,8 @@ public class MessageObject {
         return canEditMessageScheduleTime(currentAccount, messageOwner, chat);
     }
 
-    public boolean canForwardMessage() {
-        return !(messageOwner instanceof TLRPC.TL_message_secret) && !needDrawBluredPreview() && !isLiveLocation() && type != 16 && !isSponsored();
+    public boolean canForwardMessage(TLRPC.Chat chat) {
+        return !(messageOwner instanceof TLRPC.TL_message_secret) && !needDrawBluredPreview() && !isLiveLocation() && type != 16 && !isSponsored() && chat != null && !chat.noforwards;
     }
 
     public boolean canEditMedia() {
