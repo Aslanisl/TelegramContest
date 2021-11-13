@@ -93,6 +93,8 @@ import androidx.customview.widget.ExploreByTouchHelper;
 import androidx.recyclerview.widget.ChatListItemAnimator;
 import androidx.recyclerview.widget.LinearLayoutManager;
 
+import com.google.android.exoplayer2.util.Log;
+
 import org.telegram.messenger.AccountInstance;
 import org.telegram.messenger.AndroidUtilities;
 import org.telegram.messenger.ApplicationLoader;
@@ -124,6 +126,8 @@ import org.telegram.ui.ActionBar.AdjustPanLayoutHelper;
 import org.telegram.ui.ActionBar.AlertDialog;
 import org.telegram.ui.ActionBar.SimpleTextView;
 import org.telegram.ui.ActionBar.Theme;
+import org.telegram.ui.Cells.ChatSendAsCell;
+import org.telegram.ui.Cells.ShareDialogCell;
 import org.telegram.ui.ChatActivity;
 import org.telegram.ui.DialogsActivity;
 import org.telegram.ui.GroupStickersActivity;
@@ -243,6 +247,8 @@ public class ChatActivityEnterView extends FrameLayout implements NotificationCe
     private BotCommandsMenuView botCommandsMenuButton;
     public BotCommandsMenuContainer botCommandsMenuContainer;
     private BotCommandsMenuView.BotCommandsAdapter botCommandsAdapter;
+
+    private ChatSendAsView chatSendAsView;
 
     private ValueAnimator searchAnimator;
     private float searchToOpenProgress;
@@ -2249,6 +2255,9 @@ public class ChatActivityEnterView extends FrameLayout implements NotificationCe
             attachLayout.setClipChildren(false);
             frameLayout.addView(attachLayout, LayoutHelper.createFrame(LayoutHelper.WRAP_CONTENT, 48, Gravity.BOTTOM | Gravity.RIGHT));
 
+            chatSendAsView = new ChatSendAsView(getContext(), currentAccount, resourcesProvider, this::updateSendAsViewVisibile);
+            AndroidUtilities.updateViewVisibilityAnimated(chatSendAsView, chatSendAsView.isShowSendAsView(), 1f, false);
+            frameLayout.addView(chatSendAsView, LayoutHelper.createFrame(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT, Gravity.BOTTOM | Gravity.LEFT, 10, 8, 10, 8));
 
             botCommandsMenuButton = new BotCommandsMenuView(getContext());
             botCommandsMenuButton.setOnClickListener(view -> {
@@ -3682,6 +3691,9 @@ public class ChatActivityEnterView extends FrameLayout implements NotificationCe
         if (sizeNotifierLayout != null) {
             sizeNotifierLayout.setDelegate(null);
         }
+        if (chatSendAsView != null) {
+            chatSendAsView.resetCache();
+        }
     }
 
     public void checkChannelRights() {
@@ -3788,7 +3800,34 @@ public class ChatActivityEnterView extends FrameLayout implements NotificationCe
         if (emojiView != null) {
             emojiView.setChatInfo(info);
         }
+        updateSendAsView(chatInfo);
         setSlowModeTimer(chatInfo.slowmode_next_send_date);
+    }
+
+    private void updateSendAsView(TLRPC.ChatFull chatInfo) {
+        if (chatSendAsView == null || parentFragment == null) {
+            return;
+        }
+        if (parentFragment.getCurrentChat() != null) {
+            TLRPC.Chat chat = parentFragment.getCurrentChat();
+            chatSendAsView.setChannelAndFull(chat, chatInfo);
+        }
+        updateSendAsViewVisibile();
+    }
+
+    private void updateSendAsViewVisibile() {
+        if (chatSendAsView == null || parentFragment == null) {
+            return;
+        }
+        boolean animated = true;
+        if (!parentFragment.openAnimationEnded) {
+            animated = false;
+        }
+
+        AndroidUtilities.updateViewVisibilityAnimated(chatSendAsView, chatSendAsView.isShowSendAsView(), 0.5f, animated);
+        if (animated) {
+            beginDelayedTransition();
+        }
     }
 
     public void checkRoundVideo() {
@@ -3957,6 +3996,18 @@ public class ChatActivityEnterView extends FrameLayout implements NotificationCe
                         ObjectAnimator.ofFloat(botCommandsMenuButton, View.SCALE_Y, 1.0f)
                 );
             }
+            if (chatSendAsView != null && chatSendAsView.isShowSendAsView()) {
+                chatSendAsView.setAlpha(0f);
+                chatSendAsView.setScaleY(0);
+                chatSendAsView.setScaleX(0);
+
+                recordPannelAnimation.playTogether(
+                        ObjectAnimator.ofFloat(chatSendAsView, View.ALPHA, 1.0f),
+                        ObjectAnimator.ofFloat(chatSendAsView, View.SCALE_X, 1.0f),
+                        ObjectAnimator.ofFloat(chatSendAsView, View.SCALE_Y, 1.0f)
+                );
+            }
+
             recordPannelAnimation.setDuration(150);
             recordPannelAnimation.addListener(new AnimatorListenerAdapter() {
                 @Override
@@ -4045,6 +4096,18 @@ public class ChatActivityEnterView extends FrameLayout implements NotificationCe
                         ObjectAnimator.ofFloat(botCommandsMenuButton, View.ALPHA, 1.0f),
                         ObjectAnimator.ofFloat(botCommandsMenuButton, View.SCALE_X, 1.0f),
                         ObjectAnimator.ofFloat(botCommandsMenuButton, View.SCALE_Y, 1.0f)
+                );
+            }
+
+            if (chatSendAsView != null && chatSendAsView.isShowSendAsView()) {
+                chatSendAsView.setAlpha(0f);
+                chatSendAsView.setScaleY(0);
+                chatSendAsView.setScaleX(0);
+
+                iconsEndAnimator.playTogether(
+                        ObjectAnimator.ofFloat(chatSendAsView, View.ALPHA, 1.0f),
+                        ObjectAnimator.ofFloat(chatSendAsView, View.SCALE_X, 1.0f),
+                        ObjectAnimator.ofFloat(chatSendAsView, View.SCALE_Y, 1.0f)
                 );
             }
 
@@ -5109,6 +5172,13 @@ public class ChatActivityEnterView extends FrameLayout implements NotificationCe
                         ObjectAnimator.ofFloat(botCommandsMenuButton, View.ALPHA, 0)
                 );
             }
+            if (chatSendAsView != null) {
+                iconChanges.playTogether(
+                        ObjectAnimator.ofFloat(chatSendAsView, View.SCALE_Y, 0),
+                        ObjectAnimator.ofFloat(chatSendAsView, View.SCALE_X, 0),
+                        ObjectAnimator.ofFloat(chatSendAsView, View.ALPHA, 0)
+                );
+            }
 
             AnimatorSet viewTransition = new AnimatorSet();
             viewTransition.playTogether(
@@ -5224,6 +5294,13 @@ public class ChatActivityEnterView extends FrameLayout implements NotificationCe
                             ObjectAnimator.ofFloat(botCommandsMenuButton, View.SCALE_Y, 1),
                             ObjectAnimator.ofFloat(botCommandsMenuButton, View.SCALE_X, 1),
                             ObjectAnimator.ofFloat(botCommandsMenuButton, View.ALPHA, 1)
+                    );
+                }
+                if (chatSendAsView != null && chatSendAsView.isShowSendAsView()) {
+                    runningAnimationAudio.playTogether(
+                            ObjectAnimator.ofFloat(chatSendAsView, View.SCALE_Y, 1),
+                            ObjectAnimator.ofFloat(chatSendAsView, View.SCALE_X, 1),
+                            ObjectAnimator.ofFloat(chatSendAsView, View.ALPHA, 1)
                     );
                 }
                 if (audioSendButton != null) {
@@ -5361,6 +5438,14 @@ public class ChatActivityEnterView extends FrameLayout implements NotificationCe
                     );
                 }
 
+                if (chatSendAsView != null && chatSendAsView.isShowSendAsView()) {
+                    iconsAnimator.playTogether(
+                            ObjectAnimator.ofFloat(chatSendAsView, View.SCALE_Y, 1),
+                            ObjectAnimator.ofFloat(chatSendAsView, View.SCALE_X, 1),
+                            ObjectAnimator.ofFloat(chatSendAsView, View.ALPHA, 1)
+                    );
+                }
+
                 iconsAnimator.addListener(new AnimatorListenerAdapter() {
                     @Override
                     public void onAnimationEnd(Animator animation) {
@@ -5453,6 +5538,14 @@ public class ChatActivityEnterView extends FrameLayout implements NotificationCe
                             ObjectAnimator.ofFloat(botCommandsMenuButton, View.SCALE_X, 1),
                             ObjectAnimator.ofFloat(botCommandsMenuButton, View.ALPHA, 1));
                 }
+
+                if (chatSendAsView != null && chatSendAsView.isShowSendAsView()) {
+                    iconsAnimator.playTogether(
+                            ObjectAnimator.ofFloat(chatSendAsView, View.SCALE_Y, 1),
+                            ObjectAnimator.ofFloat(chatSendAsView, View.SCALE_X, 1),
+                            ObjectAnimator.ofFloat(chatSendAsView, View.ALPHA, 1));
+                }
+
                 AnimatorSet recordTimer = new AnimatorSet();
                 recordTimer.playTogether(
                         ObjectAnimator.ofFloat(recordTimerView, View.ALPHA, 0.0f),
@@ -5609,6 +5702,14 @@ public class ChatActivityEnterView extends FrameLayout implements NotificationCe
                             ObjectAnimator.ofFloat(botCommandsMenuButton, View.SCALE_X, 1),
                             ObjectAnimator.ofFloat(botCommandsMenuButton, View.ALPHA, 1));
                 }
+
+                if (chatSendAsView != null && chatSendAsView.isShowSendAsView()) {
+                    iconsAnimator.playTogether(
+                            ObjectAnimator.ofFloat(chatSendAsView, View.SCALE_Y, 1),
+                            ObjectAnimator.ofFloat(chatSendAsView, View.SCALE_X, 1),
+                            ObjectAnimator.ofFloat(chatSendAsView, View.ALPHA, 1));
+                }
+
                 if (audioSendButton != null) {
                     audioSendButton.setScaleX(1f);
                     audioSendButton.setScaleY(1f);
@@ -8400,7 +8501,13 @@ public class ChatActivityEnterView extends FrameLayout implements NotificationCe
 
     @Override
     protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
-        if (botCommandsMenuButton != null && botCommandsMenuButton.getTag() != null) {
+        if (chatSendAsView != null && chatSendAsView.isShowSendAsView()) {
+            chatSendAsView.measure(widthMeasureSpec, heightMeasureSpec);
+            for (int i = 0; i < emojiButton.length; i++) {
+                ((MarginLayoutParams) emojiButton[i].getLayoutParams()).leftMargin = AndroidUtilities.dp(12) + chatSendAsView.getMeasuredWidth();
+            }
+            ((MarginLayoutParams) messageEditText.getLayoutParams()).leftMargin = AndroidUtilities.dp(59) + chatSendAsView.getMeasuredWidth();
+        } else if (botCommandsMenuButton != null && botCommandsMenuButton.getTag() != null) {
             botCommandsMenuButton.measure(widthMeasureSpec, heightMeasureSpec);
             for (int i = 0; i < emojiButton.length; i++) {
                 ((MarginLayoutParams) emojiButton[i].getLayoutParams()).leftMargin = AndroidUtilities.dp(10) + botCommandsMenuButton.getMeasuredWidth();

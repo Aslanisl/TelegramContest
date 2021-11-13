@@ -3047,7 +3047,11 @@ public class SharedMediaLayout extends FrameLayout implements NotificationCenter
             showNoforwardsHintView.setVisibility(View.INVISIBLE);
             delegate.getContainer().addView(showNoforwardsHintView, LayoutHelper.createFrame(LayoutHelper.WRAP_CONTENT,
                     LayoutHelper.WRAP_CONTENT, Gravity.LEFT | Gravity.TOP, 0, 0, 19, -8));
-            showNoforwardsHintView.setText(LocaleController.getString("ForwardsRestrictChannel", R.string.ForwardsRestrictChannel));
+            if (profileActivity != null && ChatObject.isChannel(profileActivity.getMessagesController().getChat(-dialog_id))) {
+                showNoforwardsHintView.setText(LocaleController.getString("ForwardsRestrictChannel", R.string.ForwardsRestrictChannel));
+            } else {
+                showNoforwardsHintView.setText(LocaleController.getString("ForwardsRestrictGroup", R.string.ForwardsRestrictGroup));
+            }
             showNoforwardsHintView.setBackgroundColor(0xE5242424, 0xffffffff);
         }
         showNoforwardsHintView.showForView(forwardItem, true);

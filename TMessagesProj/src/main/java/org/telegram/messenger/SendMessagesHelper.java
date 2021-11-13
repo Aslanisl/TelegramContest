@@ -1965,6 +1965,11 @@ public class SendMessagesHelper extends BaseController implements NotificationCe
                     req.drop_media_captions = hideCaption;
                     req.with_my_score = messages.size() == 1 && messages.get(0).messageOwner.with_my_score;
 
+                    TLRPC.ChatFull chatFull = getMessagesController().getChatFull(-peer);
+                    if (chatFull != null && chatFull.default_send_as != null) {
+                        req.send_as = getMessagesController().getInputPeer(MessageObject.getPeerId(chatFull.default_send_as));
+                    }
+
                     final ArrayList<TLRPC.Message> newMsgObjArr = arr;
                     final ArrayList<MessageObject> newMsgArr = new ArrayList<>(objArr);
                     final LongSparseArray<TLRPC.Message> messagesByRandomIdsFinal = messagesByRandomIds;
@@ -3006,16 +3011,23 @@ public class SendMessagesHelper extends BaseController implements NotificationCe
         }
         TLRPC.TL_messages_sendMedia request = new TLRPC.TL_messages_sendMedia();
         request.peer = peer;
+        TLRPC.ChatFull chatFull;
         if (request.peer instanceof TLRPC.TL_inputPeerChannel) {
             request.silent = MessagesController.getNotificationsSettings(currentAccount).getBoolean("silent_" + -peer.channel_id, false);
+            chatFull = getMessagesController().getChatFull(-peer.channel_id);
         } else if (request.peer instanceof TLRPC.TL_inputPeerChat) {
             request.silent = MessagesController.getNotificationsSettings(currentAccount).getBoolean("silent_" + -peer.chat_id, false);
+            chatFull = getMessagesController().getChatFull(-peer.chat_id);
         } else {
             request.silent = MessagesController.getNotificationsSettings(currentAccount).getBoolean("silent_" + peer.user_id, false);
+            chatFull = getMessagesController().getChatFull(peer.user_id);
         }
         request.random_id = random_id != 0 ? random_id : getNextRandomId();
         request.message = "";
         request.media = game;
+        if (chatFull != null && chatFull.default_send_as != null) {
+            request.send_as = getMessagesController().getInputPeer(MessageObject.getPeerId(chatFull.default_send_as));
+        }
         final long newTaskId;
         if (taskId == 0) {
             NativeByteBuffer data = null;
@@ -3637,6 +3649,11 @@ public class SendMessagesHelper extends BaseController implements NotificationCe
                     reqSend.silent = newMsg.silent;
                     reqSend.peer = sendToPeer;
                     reqSend.random_id = newMsg.random_id;
+                    TLRPC.ChatFull chatFull = getMessagesController().getChatFull(-peer);
+                    if (chatFull != null && chatFull.default_send_as != null) {
+                        reqSend.send_as = getMessagesController().getInputPeer(MessageObject.getPeerId(chatFull.default_send_as));
+                    }
+
                     if (newMsg.reply_to != null && newMsg.reply_to.reply_to_msg_id != 0) {
                         reqSend.flags |= 1;
                         reqSend.reply_to_msg_id = newMsg.reply_to.reply_to_msg_id;
@@ -3995,6 +4012,10 @@ public class SendMessagesHelper extends BaseController implements NotificationCe
                             request.flags |= 1;
                             request.reply_to_msg_id = newMsg.reply_to.reply_to_msg_id;
                         }
+                        TLRPC.ChatFull chatFull = getMessagesController().getChatFull(-peer);
+                        if (chatFull != null && chatFull.default_send_as != null) {
+                            request.send_as = getMessagesController().getInputPeer(MessageObject.getPeerId(chatFull.default_send_as));
+                        }
                         request.random_id = newMsg.random_id;
                         request.media = inputMedia;
                         request.message = caption;
@@ -4344,6 +4365,10 @@ public class SendMessagesHelper extends BaseController implements NotificationCe
                         } else {
                             reqSend.from_peer = new TLRPC.TL_inputPeerEmpty();
                         }
+                        TLRPC.ChatFull chatFull = getMessagesController().getChatFull(-peerId);
+                        if (chatFull != null && chatFull.default_send_as != null) {
+                            reqSend.send_as = getMessagesController().getInputPeer(MessageObject.getPeerId(chatFull.default_send_as));
+                        }
                     } else {
                         reqSend.from_peer = new TLRPC.TL_inputPeerEmpty();
                     }
@@ -4383,6 +4408,11 @@ public class SendMessagesHelper extends BaseController implements NotificationCe
                 }
                 reqSend.query_id = Utilities.parseLong(params.get("query_id"));
                 reqSend.id = params.get("id");
+
+                TLRPC.ChatFull chatFull = getMessagesController().getChatFull(-peer);
+                if (chatFull != null && chatFull.default_send_as != null) {
+                    reqSend.send_as = getMessagesController().getInputPeer(MessageObject.getPeerId(chatFull.default_send_as));
+                }
                 if (retryMessageObject == null) {
                     reqSend.clear_draft = true;
                     getMediaDataController().cleanDraft(peer, replyToTopMsg != null ? replyToTopMsg.getId() : 0, false);
@@ -5246,6 +5276,20 @@ public class SendMessagesHelper extends BaseController implements NotificationCe
                         performSendDelayedMessage(delayedMessage);
                     });
                     return;
+                }
+            }
+            if (error != null && (req instanceof TLRPC.TL_messages_sendMessage ||
+                    req instanceof TLRPC.TL_messages_sendMedia ||
+                    req instanceof TLRPC.TL_messages_sendInlineBotResult ||
+                    req instanceof TLRPC.TL_messages_forwardMessages ||
+                    req instanceof TLRPC.TL_messages_sendMultiMedia)) {
+
+                if (error.code == 400 && (error.text.equals("SEND_AS_PEER_INVALID") ||
+                        error.text.equals("CHAT_FORWARDS_RESTRICTED"))) {
+                    long dialog_id = msgObj.getDialogId();
+                    if (dialog_id < 0) {
+                        MessagesController.getInstance(currentAccount).loadFullChat(-dialog_id, ConnectionsManager.generateClassGuid(), true);
+                    }
                 }
             }
             if (req instanceof TLRPC.TL_messages_editMessage) {

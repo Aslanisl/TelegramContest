@@ -20223,13 +20223,18 @@ public class ChatActivity extends BaseFragment implements NotificationCenter.Not
             boolean showNoForwardsMessage = single && isNoforwardChat();
             scrimPopupContainerLayout.addView(popupLayout, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, 0, 0, showMessageSeen ? -8 : 0, 0, showNoForwardsMessage ? -8 : 0));
 
+            TextView noForwardsTextView = null;
             if (showNoForwardsMessage) {
-                TextView noForwardsTextView = new TextView(contentView.getContext());
+                noForwardsTextView = new TextView(contentView.getContext());
                 noForwardsTextView.setTextColor(getThemedColor(Theme.key_chat_addContact));
                 noForwardsTextView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 14);
                 noForwardsTextView.setPadding(AndroidUtilities.dp(16), AndroidUtilities.dp(7), AndroidUtilities.dp(7),
                         AndroidUtilities.dp(16));
-                noForwardsTextView.setText(LocaleController.getString("ForwardsRestrictGroup", R.string.ForwardsRestrictGroup));
+                if (ChatObject.isChannel(currentChat)) {
+                    noForwardsTextView.setText(LocaleController.getString("ForwardsRestrictChannel", R.string.ForwardsRestrictChannel));
+                } else {
+                    noForwardsTextView.setText(LocaleController.getString("ForwardsRestrictGroup", R.string.ForwardsRestrictGroup));
+                }
                 noForwardsTextView.setTextColor(Theme.getColor(Theme.key_actionBarDefaultSubmenuItem));
                 Drawable shadowDrawable2 = ContextCompat.getDrawable(contentView.getContext(), R.drawable.popup_fixed_alert).mutate();
                 shadowDrawable2.setColorFilter(new PorterDuffColorFilter(Theme.getColor(Theme.key_actionBarDefaultSubmenuBackground), PorterDuff.Mode.MULTIPLY));
@@ -20300,6 +20305,9 @@ public class ChatActivity extends BaseFragment implements NotificationCenter.Not
 
             if (messageSeenView != null) {
                 messageSeenView.getLayoutParams().width = scrimPopupContainerLayout.getMeasuredWidth() - AndroidUtilities.dp(16);
+            }
+            if (noForwardsTextView != null) {
+                noForwardsTextView.getLayoutParams().width = scrimPopupContainerLayout.getMeasuredWidth() - AndroidUtilities.dp(16);
             }
             int popupX = v.getLeft() + (int) x - scrimPopupContainerLayout.getMeasuredWidth() + backgroundPaddings.left - AndroidUtilities.dp(28);
             if (popupX < AndroidUtilities.dp(6)) {

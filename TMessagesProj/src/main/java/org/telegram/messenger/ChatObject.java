@@ -1494,6 +1494,10 @@ public class ChatObject {
         return isChannel(chat) && !isMegagroup(chat);
     }
 
+    public static boolean isChannelForSendAs(TLRPC.Chat chat) {
+        return chat instanceof TLRPC.TL_channel && (chat.megagroup && (!TextUtils.isEmpty(chat.username) || chat.has_geo) || (chat.megagroup && chat.has_link));
+    }
+
     public static boolean isMegagroup(int currentAccount, long chatId) {
         TLRPC.Chat chat = MessagesController.getInstance(currentAccount).getChat(chatId);
         return ChatObject.isChannel(chat) && chat.megagroup;
