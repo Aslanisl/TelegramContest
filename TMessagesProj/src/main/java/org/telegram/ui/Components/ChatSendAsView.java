@@ -25,6 +25,7 @@ import org.telegram.messenger.MessageObject;
 import org.telegram.messenger.MessagesController;
 import org.telegram.messenger.MessagesStorage;
 import org.telegram.messenger.R;
+import org.telegram.tgnet.ConnectionsManager;
 import org.telegram.tgnet.TLRPC;
 import org.telegram.ui.ActionBar.ActionBarPopupWindow;
 import org.telegram.ui.ActionBar.Theme;
@@ -50,6 +51,7 @@ public class ChatSendAsView extends SizeNotifierFrameLayout {
     private TLRPC.ChatFull chatFull;
     private ChatSendAsViewDelegate delegate;
     private boolean isShowView = false;
+    private boolean forceUpdatePeers = false;
 
     public ChatSendAsView(Context context, int currentAccount, Theme.ResourcesProvider resourcesProvider, ChatSendAsViewDelegate delegate) {
         super(context);
@@ -96,10 +98,12 @@ public class ChatSendAsView extends SizeNotifierFrameLayout {
 
             if (isOpen) {
                 closeButton.setVisibility(View.VISIBLE);
+                closeButton.setRotation(90);
                 currentButtonAnimation.playTogether(
                         ObjectAnimator.ofFloat(closeButton, View.SCALE_X, 1.0f),
                         ObjectAnimator.ofFloat(closeButton, View.SCALE_Y, 1.0f),
                         ObjectAnimator.ofFloat(closeButton, View.ALPHA, 1.0f),
+                        ObjectAnimator.ofFloat(closeButton, View.ROTATION, 0f),
 
                         ObjectAnimator.ofFloat(imageView, View.SCALE_X, 0.0f),
                         ObjectAnimator.ofFloat(imageView, View.SCALE_Y, 0.0f),
@@ -114,10 +118,12 @@ public class ChatSendAsView extends SizeNotifierFrameLayout {
 
             } else{
                 imageView.setVisibility(View.VISIBLE);
+                closeButton.setRotation(-90);
                 currentButtonAnimation.playTogether(
                         ObjectAnimator.ofFloat(closeButton, View.SCALE_X, 0.0f),
                         ObjectAnimator.ofFloat(closeButton, View.SCALE_Y, 0.0f),
                         ObjectAnimator.ofFloat(closeButton, View.ALPHA, 0.0f),
+                        ObjectAnimator.ofFloat(closeButton, View.ROTATION, 0f),
 
                         ObjectAnimator.ofFloat(imageView, View.SCALE_X, 1.0f),
                         ObjectAnimator.ofFloat(imageView, View.SCALE_Y, 1.0f),
@@ -165,7 +171,7 @@ public class ChatSendAsView extends SizeNotifierFrameLayout {
         if (chatFull != null && (chatFull.flags & 536870912) != 0 && ChatObject.isChannelForSendAs(chat)) {
             this.chatFull = chatFull;
             this.channel = (TLRPC.TL_channel) chat;
-            ChatSendAsCell.load(getContext(), channel.id, accountInstance, count -> {
+            ChatSendAsCell.load(getContext(), channel.id, accountInstance, forceUpdatePeers, count -> {
                 isShowView = count > 1;
                 if (delegate != null) {
                     delegate.updateView();
@@ -177,6 +183,14 @@ public class ChatSendAsView extends SizeNotifierFrameLayout {
                     scrimPopupWindow.dismiss();
                 }
                 ChatSendAsCell.open(getContext(), channel.id, accountInstance, chatFull.default_send_as, new ChatSendAsCell.ChatSendAsCellDelegate() {
+
+                    @Override
+                    public void peersCount(int count) {
+                        isShowView = count > 1;
+                        if (delegate != null) {
+                            delegate.updateView();
+                        }
+                    }
 
                     @Override
                     public void viewReady(ChatSendAsCell sendAsCell) {
@@ -221,14 +235,18 @@ public class ChatSendAsView extends SizeNotifierFrameLayout {
                         scrimPopupContainerLayout.measure(View.MeasureSpec.makeMeasureSpec(AndroidUtilities.dp(1000), View.MeasureSpec.AT_MOST), View.MeasureSpec.makeMeasureSpec(AndroidUtilities.dp(1000), View.MeasureSpec.AT_MOST));
 
                         int keyboardHeight = ChatSendAsView.this.measureKeyboardHeight();
-                        scrimPopupWindow.showAtLocation(ChatSendAsView.this, Gravity.LEFT | Gravity.BOTTOM, 0, keyboardHeight + ChatSendAsView.this.getMeasuredHeight() + AndroidUtilities.dp(16));
+                        scrimPopupWindow.showAtLocation(ChatSendAsView.this, Gravity.LEFT | Gravity.BOTTOM, 0, keyboardHeight + ChatSendAsView.this.getMeasuredHeight() + AndroidUtilities.dp(18));
                     }
 
                     @Override
-                    public void didSelectChat(TLRPC.Peer peer) {
+                    public void didSelectChat(View view, TLRPC.Peer peer) {
                         if (scrimPopupWindow != null) {
                             scrimPopupWindow.dismiss();
                         }
+                        if (chatFull.default_send_as == peer) {
+                            return;
+                        }
+                        updateAvatar(MessageObject.getPeerId(peer));
                         TLRPC.TL_messages_saveDefaultSendAs req = new TLRPC.TL_messages_saveDefaultSendAs();
                         req.peer = MessagesController.getInputPeer(channel);
                         req.send_as = accountInstance.getMessagesController().getInputPeer(MessageObject.getPeerId(peer));
@@ -237,8 +255,12 @@ public class ChatSendAsView extends SizeNotifierFrameLayout {
                                 chatFull.default_send_as = peer;
                                 accountInstance.getMessagesStorage().updateChatInfo(chatFull, false);
                                 accountInstance.getMessagesController().putChatFull(chatFull);
-                                updateAvatar(MessageObject.getPeerId(chatFull.default_send_as));
                             }
+                            if (error != null && error.text.equals("SEND_AS_PEER_INVALID")) {
+                                forceUpdatePeers = true;
+                                accountInstance.getMessagesController().loadFullChat(channel.id, ConnectionsManager.generateClassGuid(), true);
+                            }
+                            updateAvatar(MessageObject.getPeerId(chatFull.default_send_as));
                         });
                     }
                 });

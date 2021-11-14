@@ -6087,6 +6087,10 @@ public class MessagesController extends BaseController implements NotificationCe
                 if (chat == null || !chat.megagroup) {
                     return false;
                 }
+                TLRPC.ChatFull chatFull = getChatFull(chat.id);
+                if (MessageObject.getPeerId(chatFull.default_send_as) != getUserConfig().getCurrentUser().id) {
+                    return false;
+                }
             }
             if (req.peer == null) {
                 return false;

@@ -3577,6 +3577,17 @@ public class SendMessagesHelper extends BaseController implements NotificationCe
             if (newMsg.from_id == null) {
                 newMsg.from_id = newMsg.peer_id;
             }
+
+            if (sendToPeer instanceof TLRPC.TL_inputPeerChannel) {
+                TLRPC.Chat chat = getMessagesController().getChat(-peer);
+                if (chat != null) {
+                    TLRPC.ChatFull chatFull = getMessagesController().getChatFull(chat.id);
+                    if (chatFull != null && chatFull.default_send_as != null) {
+                        newMsg.from_id = chatFull.default_send_as;
+                    }
+                }
+            }
+
             newMsg.send_state = MessageObject.MESSAGE_SEND_STATE_SENDING;
 
             long groupId = 0;

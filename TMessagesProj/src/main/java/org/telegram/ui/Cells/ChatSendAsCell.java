@@ -67,14 +67,16 @@ public class ChatSendAsCell extends LinearLayout {
     public interface ChatSendAsCellDelegate {
         void viewReady(ChatSendAsCell view);
 
-        void didSelectChat(TLRPC.Peer peer);
+        void didSelectChat(View view, TLRPC.Peer peer);
+
+        void peersCount(int count);
     }
 
-    public static void load(Context context, long did, AccountInstance accountInstance, ChatSendAsPeersCountDelegate delegate) {
+    public static void load(Context context, long did, AccountInstance accountInstance, boolean forceUpdatePeers, ChatSendAsPeersCountDelegate delegate) {
         if (context == null || delegate == null) {
             return;
         }
-        if (lastCachedAccount == accountInstance.getCurrentAccount() && lastCacheDid == did && cachedChats != null && SystemClock.elapsedRealtime() - lastCacheTime < 5 * 60 * 1000) {
+        if (!forceUpdatePeers && lastCachedAccount == accountInstance.getCurrentAccount() && lastCacheDid == did && cachedChats != null && SystemClock.elapsedRealtime() - lastCacheTime < 5 * 60 * 1000) {
             delegate.peersCount(cachedChats.size());
         } else {
             TLRPC.TL_channels_getSendAs req = new TLRPC.TL_channels_getSendAs();
@@ -100,6 +102,7 @@ public class ChatSendAsCell extends LinearLayout {
         }
         if (lastCachedAccount == accountInstance.getCurrentAccount() && lastCacheDid == did && cachedChats != null && SystemClock.elapsedRealtime() - lastCacheTime < 5 * 60 * 1000) {
             createView(context, accountInstance, cachedChats, selectedPeer, delegate);
+            delegate.peersCount(cachedChats.size());
         } else {
             final AlertDialog progressDialog = new AlertDialog(context, 3);
 
@@ -120,6 +123,7 @@ public class ChatSendAsCell extends LinearLayout {
                     accountInstance.getMessagesController().putChats(res.chats, false);
                     accountInstance.getMessagesController().putUsers(res.users, false);
                     createView(context, accountInstance, res.peers, selectedPeer, delegate);
+                    delegate.peersCount(res.peers.size());
                 }
             }));
             progressDialog.setOnCancelListener(dialog -> accountInstance.getConnectionsManager().cancelRequest(reqId, true));
@@ -158,7 +162,7 @@ public class ChatSendAsCell extends LinearLayout {
         listView.setGlowColor(Theme.getColor(Theme.key_dialogScrollGlow));
 
         listView.setOnItemClickListener((view, position) -> {
-            delegate.didSelectChat(chats.get(position));
+            delegate.didSelectChat(view, chats.get(position));
         });
         listView.setSelectorDrawableColor(0);
         listView.setPadding(AndroidUtilities.dp(10), 0, AndroidUtilities.dp(10), AndroidUtilities.dp(10));
