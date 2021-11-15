@@ -20228,12 +20228,12 @@ public class ChatActivity extends BaseFragment implements NotificationCenter.Not
                 noForwardsTextView = new TextView(contentView.getContext());
                 noForwardsTextView.setTextColor(getThemedColor(Theme.key_chat_addContact));
                 noForwardsTextView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 14);
-                noForwardsTextView.setPadding(AndroidUtilities.dp(16), AndroidUtilities.dp(7), AndroidUtilities.dp(7),
-                        AndroidUtilities.dp(16));
+                noForwardsTextView.setPadding(AndroidUtilities.dp(16), AndroidUtilities.dp(7), AndroidUtilities.dp(16),
+                        AndroidUtilities.dp(7));
                 if (ChatObject.isChannel(currentChat)) {
-                    noForwardsTextView.setText(LocaleController.getString("ForwardsRestrictChannel", R.string.ForwardsRestrictChannel));
+                    noForwardsTextView.setText(LocaleController.getString("ChatForwardsRestrictChannel", R.string.ChatForwardsRestrictChannel));
                 } else {
-                    noForwardsTextView.setText(LocaleController.getString("ForwardsRestrictGroup", R.string.ForwardsRestrictGroup));
+                    noForwardsTextView.setText(LocaleController.getString("ChatForwardsRestrictGroup", R.string.ChatForwardsRestrictGroup));
                 }
                 noForwardsTextView.setTextColor(Theme.getColor(Theme.key_actionBarDefaultSubmenuItem));
                 Drawable shadowDrawable2 = ContextCompat.getDrawable(contentView.getContext(), R.drawable.popup_fixed_alert).mutate();

@@ -1,12 +1,16 @@
 package org.telegram.ui.Cells;
 
 import android.content.Context;
+import android.graphics.PorterDuff;
+import android.graphics.PorterDuffColorFilter;
 import android.os.SystemClock;
 import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.FrameLayout;
 import android.widget.LinearLayout;
 
+import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -40,9 +44,14 @@ public class ChatSendAsCell extends LinearLayout {
     private static long lastCacheTime;
     private static long lastCacheDid;
     private static int lastCachedAccount;
+    private static int lastTopPosition = -1;
+    private static int lastTopPositionOffset = 0;
+
 
     public static void resetCache() {
         cachedChats = null;
+        lastTopPosition = 0;
+        lastTopPositionOffset = 0;
     }
 
     public static void processDeletedChat(int account, long did) {
@@ -100,7 +109,7 @@ public class ChatSendAsCell extends LinearLayout {
         if (context == null || delegate == null) {
             return;
         }
-        if (lastCachedAccount == accountInstance.getCurrentAccount() && lastCacheDid == did && cachedChats != null && SystemClock.elapsedRealtime() - lastCacheTime < 5 * 60 * 1000) {
+        if (lastCachedAccount == accountInstance.getCurrentAccount() && lastCacheDid == did && cachedChats != null && SystemClock.elapsedRealtime() - lastCacheTime < 60 * 1000) {
             createView(context, accountInstance, cachedChats, selectedPeer, delegate);
             delegate.peersCount(cachedChats.size());
         } else {
@@ -154,7 +163,8 @@ public class ChatSendAsCell extends LinearLayout {
         addView(headerCell, LayoutHelper.createLinear(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT, Gravity.BOTTOM | Gravity.LEFT, 0, 0, 0, 8));
 
         listView = new RecyclerListView(context);
-        listView.setLayoutManager(new LinearLayoutManager(getContext(), LinearLayoutManager.VERTICAL, false));
+        LinearLayoutManager manager = new LinearLayoutManager(getContext(), LinearLayoutManager.VERTICAL, false);
+        listView.setLayoutManager(manager);
         listView.setAdapter(new ChatSendAsCell.ListAdapter(context));
         listView.setVerticalScrollBarEnabled(false);
         listView.setClipToPadding(false);
@@ -164,10 +174,59 @@ public class ChatSendAsCell extends LinearLayout {
         listView.setOnItemClickListener((view, position) -> {
             delegate.didSelectChat(view, chats.get(position));
         });
+
+        FrameLayout frameLayout = new FrameLayout(getContext());
+        addView(frameLayout);
+
         listView.setSelectorDrawableColor(0);
         listView.setPadding(AndroidUtilities.dp(10), 0, AndroidUtilities.dp(10), AndroidUtilities.dp(10));
         listView.measure(View.MeasureSpec.makeMeasureSpec(AndroidUtilities.dp(500), View.MeasureSpec.AT_MOST), View.MeasureSpec.makeMeasureSpec(AndroidUtilities.dp(350), MeasureSpec.AT_MOST));
-        addView(listView);
+        frameLayout.addView(listView);
+
+        View shadow = new View(context);
+        shadow.setBackgroundResource(R.drawable.header_shadow);
+        shadow.getBackground().setColorFilter(new PorterDuffColorFilter(0xff000000, PorterDuff.Mode.MULTIPLY));
+        frameLayout.addView(shadow, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, 3, Gravity.TOP | Gravity.LEFT, 0, 0, 0, 0));
+
+        listView.setOverScrollMode(OVER_SCROLL_NEVER);
+        listView.addOnScrollListener(new RecyclerView.OnScrollListener() {
+            private float visibleShadowRange = 30;
+            @Override
+            public void onScrolled(@NonNull RecyclerView recyclerView, int dx, int dy) {
+                super.onScrolled(recyclerView, dx, dy);
+                float scrollDy = recyclerView.computeVerticalScrollOffset();
+                float alpha = Math.min(scrollDy / visibleShadowRange, 1f);
+                shadow.setAlpha(alpha);
+            }
+        });
+
+        if (lastTopPosition >= 0) {
+            manager.scrollToPositionWithOffset(lastTopPosition, lastTopPositionOffset);
+        } else {
+            int position = -1;
+            for (int i = 0; i < chats.size(); i++) {
+                if (MessageObject.getPeerId(selectedPeer) == MessageObject.getPeerId(chats.get(i))) {
+                    position = i;
+                    break;
+                }
+            }
+            if (position >= 0) {
+                manager.scrollToPositionWithOffset(position, 0, true);
+            }
+        }
+    }
+
+    @Override
+    protected void onDetachedFromWindow() {
+        super.onDetachedFromWindow();
+        if (listView != null && listView.getLayoutManager() != null && listView.getLayoutManager() instanceof LinearLayoutManager) {
+            LinearLayoutManager manager = (LinearLayoutManager) listView.getLayoutManager();
+            lastTopPosition = manager.findFirstVisibleItemPosition();
+            View view = manager.findViewByPosition(lastTopPosition);
+            if (view != null) {
+                lastTopPositionOffset = view.getTop();
+            }
+        }
     }
 
     @Override
@@ -200,7 +259,7 @@ public class ChatSendAsCell extends LinearLayout {
 
         @Override
         public RecyclerView.ViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
-            View view = new GroupCreateUserCell(context, 2, 0, false, true);
+            View view = new GroupCreateUserCell(context, 2, 0, false);
             return new RecyclerListView.Holder(view);
         }
 

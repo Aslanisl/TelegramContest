@@ -93,8 +93,6 @@ import androidx.customview.widget.ExploreByTouchHelper;
 import androidx.recyclerview.widget.ChatListItemAnimator;
 import androidx.recyclerview.widget.LinearLayoutManager;
 
-import com.google.android.exoplayer2.util.Log;
-
 import org.telegram.messenger.AccountInstance;
 import org.telegram.messenger.AndroidUtilities;
 import org.telegram.messenger.ApplicationLoader;
@@ -126,8 +124,6 @@ import org.telegram.ui.ActionBar.AdjustPanLayoutHelper;
 import org.telegram.ui.ActionBar.AlertDialog;
 import org.telegram.ui.ActionBar.SimpleTextView;
 import org.telegram.ui.ActionBar.Theme;
-import org.telegram.ui.Cells.ChatSendAsCell;
-import org.telegram.ui.Cells.ShareDialogCell;
 import org.telegram.ui.ChatActivity;
 import org.telegram.ui.DialogsActivity;
 import org.telegram.ui.GroupStickersActivity;
@@ -2255,7 +2251,7 @@ public class ChatActivityEnterView extends FrameLayout implements NotificationCe
             attachLayout.setClipChildren(false);
             frameLayout.addView(attachLayout, LayoutHelper.createFrame(LayoutHelper.WRAP_CONTENT, 48, Gravity.BOTTOM | Gravity.RIGHT));
 
-            chatSendAsView = new ChatSendAsView(getContext(), currentAccount, resourcesProvider, this::updateSendAsViewVisibile);
+            chatSendAsView = new ChatSendAsView(getContext(), currentAccount, resourcesProvider, this::updateSendAsViewVisible);
             AndroidUtilities.updateViewVisibilityAnimated(chatSendAsView, chatSendAsView.isShowSendAsView(), 1f, false);
             frameLayout.addView(chatSendAsView, LayoutHelper.createFrame(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT, Gravity.BOTTOM | Gravity.LEFT, 10, 8, 10, 8));
 
@@ -3812,10 +3808,10 @@ public class ChatActivityEnterView extends FrameLayout implements NotificationCe
             TLRPC.Chat chat = parentFragment.getCurrentChat();
             chatSendAsView.setChannelAndFull(chat, chatInfo);
         }
-        updateSendAsViewVisibile();
+        updateSendAsViewVisible();
     }
 
-    private void updateSendAsViewVisibile() {
+    private void updateSendAsViewVisible() {
         if (chatSendAsView == null || parentFragment == null) {
             return;
         }

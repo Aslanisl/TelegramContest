@@ -589,8 +589,10 @@
     <string name="GroupSettingsTitle">Group Settings</string>
     <string name="ChannelSettingsTitle">Channel Settings</string>
     <string name="TypePrivate">Private</string>
+    <string name="TypePrivateRestricted">Private restricted</string>
     <string name="TypePublic">Public</string>
     <string name="TypePrivateGroup">Private</string>
+    <string name="TypePrivateGroupRestricted">Private restricted</string>
     <string name="TypePublicGroup">Public</string>
     <string name="TypeLocationGroup">Link</string>
     <string name="TypeLocationGroupEdit">Tap to add a permanent link</string>
@@ -4814,8 +4816,10 @@
     <string name="SavingContent">Saving content</string>
     <string name="RestrictSavingContent">Restrict saving content</string>
     <string name="RestrictSavingContentDescription">Participants won’t be able to forward messages from this group or save media files.</string>
-    <string name="ForwardsRestrictGroup">Forwards from this group\nare restricted.</string>
+    <string name="ForwardsRestrictGroup">Forwards from this group are restricted.</string>
     <string name="ForwardsRestrictChannel">Forwards from this channel are restricted</string>
+    <string name="ChatForwardsRestrictGroup">Forwards from this group\nare restricted.</string>
+    <string name="ChatForwardsRestrictChannel">Forwards from this channel\nare restricted</string>
     <string name="SendMessageAs">Send message as…</string>
     <string name="SendUserPersonalAccount">personal account</string>
 </resources>

@@ -10020,6 +10020,7 @@ public class PhotoViewer implements NotificationCenter.NotificationCenterDelegat
             }
         }
         checkFullscreenButton();
+        updateActionBarNoforwardItems();
     }
 
     private boolean canSendMediaToParentChatActivity() {
@@ -15345,11 +15346,10 @@ public class PhotoViewer implements NotificationCenter.NotificationCenterDelegat
     }
 
     private boolean isNoforwardChat() {
-        TLRPC.Chat chat;
         if (DialogObject.isChatDialog(currentDialogId)) {
-            chat = MessagesController.getInstance(currentAccount).getChat(-currentDialogId);
-            if (chat != null && chat.noforwards) {
-                return true;
+            TLRPC.Chat chat = MessagesController.getInstance(currentAccount).getChat(-currentDialogId);
+            if (chat != null) {
+                return chat.noforwards;
             }
         }
         if (parentChatActivity != null && parentChatActivity.currentChat != null) {

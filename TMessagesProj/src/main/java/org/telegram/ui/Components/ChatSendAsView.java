@@ -168,7 +168,7 @@ public class ChatSendAsView extends SizeNotifierFrameLayout {
         if (this.chatFull == chatFull && this.channel == chat) {
             return;
         }
-        if (chatFull != null && (chatFull.flags & 536870912) != 0 && ChatObject.isChannelForSendAs(chat)) {
+        if (chatFull != null && (chatFull.flags & 536870912) != 0 && chatFull.default_send_as != null && ChatObject.isChannelForSendAs(chat)) {
             this.chatFull = chatFull;
             this.channel = (TLRPC.TL_channel) chat;
             ChatSendAsCell.load(getContext(), channel.id, accountInstance, forceUpdatePeers, count -> {
@@ -250,7 +250,7 @@ public class ChatSendAsView extends SizeNotifierFrameLayout {
                         TLRPC.TL_messages_saveDefaultSendAs req = new TLRPC.TL_messages_saveDefaultSendAs();
                         req.peer = MessagesController.getInputPeer(channel);
                         req.send_as = accountInstance.getMessagesController().getInputPeer(MessageObject.getPeerId(peer));
-                        accountInstance.getConnectionsManager().sendRequest(req, (response, error) -> {
+                        accountInstance.getConnectionsManager().sendRequest(req, (response, error) -> AndroidUtilities.runOnUIThread(() -> {
                             if (response != null) {
                                 chatFull.default_send_as = peer;
                                 accountInstance.getMessagesStorage().updateChatInfo(chatFull, false);
@@ -261,7 +261,7 @@ public class ChatSendAsView extends SizeNotifierFrameLayout {
                                 accountInstance.getMessagesController().loadFullChat(channel.id, ConnectionsManager.generateClassGuid(), true);
                             }
                             updateAvatar(MessageObject.getPeerId(chatFull.default_send_as));
-                        });
+                        }));
                     }
                 });
             });

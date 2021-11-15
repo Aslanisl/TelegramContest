@@ -466,16 +466,38 @@ public class ChatEditTypeActivity extends BaseFragment implements NotificationCe
 
     private void processDone() {
         if (trySetUsername()) {
-            saveNoForwards();
-            finishFragment();
+            trySaveNoForwards();
         }
     }
 
-    private void saveNoForwards() {
+    private void trySaveNoForwards() {
+        if (currentChat == null) {
+            finishFragment();
+            return;
+        }
         TLRPC.TL_messages_toggleNoForwards req = new TLRPC.TL_messages_toggleNoForwards();
         req.enabled = restrictSavingCheckCell.isChecked();
-        req.peer = getMessagesController().getInputPeer(-chatId);
-        getConnectionsManager().sendRequest(req, null);
+        req.peer = MessagesController.getInputPeer(currentChat);
+        getConnectionsManager().sendRequest(req, (response, error) -> AndroidUtilities.runOnUIThread(() -> {
+            if (response instanceof TLRPC.TL_updates && currentChat != null) {
+                TLRPC.Chat chat = getMessagesController().getChat(currentChat.id);
+                if (chat != null) {
+                    if (req.enabled) {
+                        chat.flags |= ChatObject.isChannel(currentChat) ? 134217728 : 33554432;
+                    } else {
+                        chat.flags &= ~(ChatObject.isChannel(currentChat) ? 134217728 : 33554432);
+                    }
+                    chat.noforwards = req.enabled;
+
+                    ArrayList<TLRPC.Chat> arrayList = new ArrayList<>();
+                    arrayList.add(chat);
+                    getMessagesStorage().putUsersAndChats(null, arrayList, true, true);
+                    getNotificationCenter().postNotificationName(NotificationCenter.updateInterfaces, MessagesController.UPDATE_MASK_CHAT);
+                }
+
+            }
+            finishFragment();
+        }), ConnectionsManager.RequestFlagInvokeAfter);
     }
 
     private boolean trySetUsername() {
